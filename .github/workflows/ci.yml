@@ -13,35 +13,62 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the code
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up the programming language environment
+      # Step 2: Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # Step 3: Install dependencies
+      # Step 3: Cache Python dependencies
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Step 4: Install dependencies
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      # Step 4: Run tests
+      # Step 5: Run the linter
+      - name: Run linter
+        run: |
+          flake8 .
+      
+      # Step 6: Run tests
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           pytest
 
-      # Step 5: Run linter (Optional)
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # Step 3: Install only the linter dependencies
+      - name: Install flake8
+        run: |
+          pip install flake8
+
+      # Step 4: Run the linter
       - name: Run linter
         run: |
           flake8 .
-
-      # Step 6: Add optional steps for build or deployment if needed
-      # Example:
-      # - name: Deploy to server
-      #   run: |
-      #     echo "Deployment steps here"
