@@ -86,6 +86,50 @@ pytest tests/
 4. **Querying**: Users enter a query, and the application retrieves relevant chunks from the FAISS index.
 5. **Text Generation**: The retrieved context is passed to a Hugging Face model (default: GPT-2) to generate a response.
 
+## **Architectural Choices and Design Decisions**
+
+### **1. Modular Architecture**
+- **Purpose**: Ensure each functionality is isolated, making the codebase maintainable and extendable.
+- **Implementation**: 
+  - Separate modules for configuration (`config.py`), services (`document_service.py`, `retrieval_service.py`, `generation_service.py`), and utilities (`utils.py`).
+  - Streamlit handles the UI independently, and each service can function autonomously.
+- **Benefit**: Facilitates testing and debugging by decoupling responsibilities.
+
+### **2. Choice of FAISS for Vector Storage**
+- **Purpose**: Provide fast, in-memory vector similarity search.
+- **Implementation**: FAISS is used to index document embeddings and retrieve the most relevant chunks.
+- **Benefit**: It is highly efficient for approximate nearest neighbor search, enabling real-time interaction for RAG workflows.
+
+### **3. Sentence Transformers for Embedding**
+- **Purpose**: Generate high-quality vector embeddings from text chunks.
+- **Implementation**: The `sentence-transformers` library is used for chunk embedding generation.
+- **Benefit**: Optimized for semantic similarity, improving the accuracy of retrieval and the relevance of responses.
+
+### **4. Hugging Face Transformers for Text Generation**
+- **Purpose**: Provide conversational capabilities using a pre-trained language model.
+- **Implementation**: GPT-2 is used for generating responses based on the retrieved chunks and user queries.
+- **Benefit**: Integrates well with Hugging Face’s pipeline API, ensuring extensibility with other models.
+
+### **5. Streamlit for User Interaction**
+- **Purpose**: Create an intuitive and lightweight interface for end-users.
+- **Implementation**: Streamlit is used for document upload, querying, and displaying responses.
+- **Benefit**: It is easy to deploy and integrates seamlessly with Python-based backends.
+
+### **6. Docker for Portability**
+- **Purpose**: Enable consistent deployment across environments.
+- **Implementation**: A `Dockerfile` encapsulates dependencies and application logic.
+- **Benefit**: Simplifies deployment and reduces "it works on my machine" issues.
+
+### **7. GitHub Actions for CI/CD**
+- **Purpose**: Automate code quality checks and deployments.
+- **Implementation**: A workflow file runs `pytest`, `Bandit`, and Docker build steps on every push or pull request.
+- **Benefit**: Ensures code stability and reduces manual intervention during development.
+
+### **8. Use Cases in SDLC**
+- **Purpose**: Demonstrate practical applications of RAG in real-world software development workflows.
+- **Implementation**: Features like generating user stories, automating test case creation, and validating architectural decisions.
+- **Benefit**: Highlights how GenAI can reduce manual effort and improve productivity.
+
 ## **DevSecOps Workflow**
 
 This project includes a CI/CD pipeline using GitHub Actions:
@@ -130,6 +174,19 @@ jobs:
     - name: Build Docker image
       run: docker build -t rag-app .
 ```
+
+## **Business Requirements Document (BRD)**
+
+For detailed business requirements, including project goals, stakeholders, functional and non-functional requirements, and success metrics, see the [Business Requirements Document (BRD)](./docs/brd.md).
+
+### **Executive Summary**
+The Conversational RAG Application aims to integrate GenAI into the SDLC to automate and enhance workflows. By enabling document processing, semantic retrieval, and AI-driven response generation, this project empowers business analysts, developers, testers, and architects to:
+- Streamline document analysis and requirement generation.
+- Reduce manual overhead in testing and development.
+- Improve decision-making with AI-assisted insights.
+
+By combining modular architecture, scalable design, and modern DevSecOps practices, this project sets a foundation for scalable, real-world GenAI applications.
+
 
 ## **Use Cases in the SDLC**
 - **Business Analysts**: Process BRDs and extract features or user stories.

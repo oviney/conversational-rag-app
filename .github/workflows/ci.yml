@@ -37,7 +37,7 @@ jobs:
         run: |
           pip install -r requirements.txt
       
-      # Step 7: Run tests
+      # Step 5: Run tests
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}
