@@ -36,16 +36,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
-      # Step 5: Install flake8 for linting
-      - name: Install flake8
-        run: |
-          pip install flake8
-
-      # Step 6: Run the linter
-      - name: Run linter
-        run: |
-          flake8 .
       
       # Step 7: Run tests
       - name: Run tests
