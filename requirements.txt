@@ -1,0 +1,7 @@
+streamlit
+sentence-transformers
+transformers
+faiss-cpu
+PyPDF2
+python-docx
+pytest
