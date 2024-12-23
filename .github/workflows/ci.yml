@@ -37,12 +37,17 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      # Step 5: Run the linter
+      # Step 5: Install flake8 for linting
+      - name: Install flake8
+        run: |
+          pip install flake8
+
+      # Step 6: Run the linter
       - name: Run linter
         run: |
           flake8 .
       
-      # Step 6: Run tests
+      # Step 7: Run tests
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -63,7 +68,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      # Step 3: Install only the linter dependencies
+      # Step 3: Install flake8
       - name: Install flake8
         run: |
           pip install flake8
