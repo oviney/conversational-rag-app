@@ -5,6 +5,31 @@ import faiss
 
 
 class RetrievalService:
+    """
+    RetrievalService is a class that provides methods to create an index of text chunks and retrieve relevant chunks based on a query using a pre-trained SentenceTransformer model and FAISS for efficient similarity search.
+    Attributes:
+        model (SentenceTransformer): The pre-trained SentenceTransformer model used for encoding text.
+        chunks (list): A list of text chunks to be indexed and searched.
+        index (faiss.IndexFlatL2): The FAISS index used for similarity search.
+    Methods:
+        __init__():
+            Initializes the RetrievalService with a pre-trained SentenceTransformer model and empty chunks and index.
+        create_index(chunks):
+            Creates a FAISS index from the provided text chunks.
+            Args:
+                chunks (list): A list of text chunks to be indexed.
+            Returns:
+                faiss.IndexFlatL2: The created FAISS index.
+        retrieve_relevant_chunks(query, top_k=5):
+            Retrieves the most relevant text chunks based on the provided query.
+            Args:
+                query (str): The query string to search for relevant chunks.
+                top_k (int, optional): The number of top relevant chunks to retrieve. Defaults to 5.
+            Returns:
+                list: A list of the most relevant text chunks.
+            Raises:
+                ValueError: If the index has not been created or loaded.
+    """
     def __init__(self):
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.chunks = []
@@ -12,8 +37,8 @@ class RetrievalService:
 
     def create_index(self, chunks):
         if not chunks:
-            self.index = None
-            return None
+            self.index = faiss.IndexFlatL2(1)  # Create an empty index with dimension 1
+            return self.index
         self.chunks = chunks
         embeddings = self.model.encode(chunks)
         dimension = embeddings.shape[1]
@@ -21,14 +46,6 @@ class RetrievalService:
         self.index = faiss.IndexFlatL2(dimension)
         self.index.add(embeddings)
         return self.index
-
-    def save_index(self):
-        if self.index:
-            faiss.write_index(self.index, Config.FAISS_INDEX_FILE)
-
-    def load_index(self):
-        if Config.FAISS_INDEX_FILE:
-            self.index = faiss.read_index(Config.FAISS_INDEX_FILE)
 
     def retrieve_relevant_chunks(self, query, top_k=5):
         if not self.index:
