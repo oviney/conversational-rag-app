@@ -6,16 +6,20 @@ import faiss
 
 class RetrievalService:
     def __init__(self):
-        self.model = SentenceTransformer(Config.EMBEDDING_MODEL, device='cpu')
-        self.index = None
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.chunks = []
+        self.index = None
 
     def create_index(self, chunks):
-        self.chunks = chunks  # Store the chunks for later retrieval
+        if not chunks:
+            self.index = None
+            return None
+        self.chunks = chunks
         embeddings = self.model.encode(chunks)
         dimension = embeddings.shape[1]
+        
         self.index = faiss.IndexFlatL2(dimension)
-        self.index.add(embeddings.astype('float32'))
+        self.index.add(embeddings)
         return self.index
 
     def save_index(self):
@@ -27,8 +31,12 @@ class RetrievalService:
             self.index = faiss.read_index(Config.FAISS_INDEX_FILE)
 
     def retrieve_relevant_chunks(self, query, top_k=5):
-        if self.index is None:
+        if not self.index:
             raise ValueError("Index has not been created or loaded.")
-        query_embedding = self.model.encode([query]).astype('float32')
-        distances, indices = self.index.search(query_embedding, top_k)
-        return [self.chunks[int(idx)] for idx in indices[0]]
+        if not self.chunks:
+            return []
+            
+        query_embedding = self.model.encode([query])
+        distances, indices = self.index.search(query_embedding, min(top_k, len(self.chunks)))
+        
+        return [self.chunks[int(idx)] for idx in indices[0] if 0 <= idx < len(self.chunks)]

@@ -8,86 +8,133 @@ from app.services.retrieval_service import RetrievalService
 from app.services.generation_service import GenerationService
 import chardet
 import tempfile
+import torch
+from app.services.chat_service import ChatService
+from app.models.chat_message import ChatMessage
+from datetime import datetime
 
-# --- Sidebar ---
-st.sidebar.title("Upload Document")
-uploaded_file = st.sidebar.file_uploader(
-    "Choose a PDF, DOCX, or TXT file", type=["pdf", "docx", "txt"]
-)
+def setup_device():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    return device
 
-# --- Main UI ---
-st.title("Conversational RAG Application")
-st.write("Upload a document to get started.")
+# Use this in your GenerationService or other model-related code
+device = setup_device()
 
-if uploaded_file is not None:
-    # Save the uploaded file temporarily
-    file_extension = os.path.splitext(uploaded_file.name)[1].lower()
-    if file_extension == '.txt':
-        text = uploaded_file.getvalue().decode("utf-8")
-    else:
-        # Save the uploaded file temporarily
-        with tempfile.NamedTemporaryFile(
-            delete=False, suffix=file_extension
-        ) as tmp_file:
-            tmp_file.write(uploaded_file.getvalue())
-            temp_file_path = tmp_file.name
+# Initialize session state
+if 'processed_text' not in st.session_state:
+    st.session_state.processed_text = None
+if 'chunks' not in st.session_state:
+    st.session_state.chunks = None
+if 'retrieval_service' not in st.session_state:
+    st.session_state.retrieval_service = RetrievalService()
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+if 'chat_service' not in st.session_state:
+    st.session_state.chat_service = ChatService()
 
-        if file_extension == '.pdf':
-            text = extract_text_from_pdf(temp_file_path)
+# Cache the document processing
+@st.cache_data(show_spinner=True)
+def process_document(file_content, file_extension):
+    try:
+        if file_extension == '.txt':
+            text = file_content.decode("utf-8")
+        elif file_extension == '.pdf':
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                tmp_file.write(file_content)
+                text = extract_text_from_pdf(tmp_file.name)
         elif file_extension == '.docx':
-            text = extract_text_from_docx(temp_file_path)
-        else:
-            raw_text = uploaded_file.getvalue()
-            result = chardet.detect(raw_text)
-            encoding = result['encoding']
-            text = raw_text.decode(encoding)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+                tmp_file.write(file_content)
+                text = extract_text_from_docx(tmp_file.name)
+        
+        return text
+    except Exception as e:
+        st.error(f"Error processing document: {str(e)}")
+        return None
 
-    # Preprocess and chunk text
-    text = preprocess_text(text)
-    chunks = chunk_text(text)
+# UI Layout
+st.set_page_config(page_title="Document Q&A", layout="wide")
 
-    # Create FAISS index with caching
-    @st.cache
-    def cached_create_index(chunks):
-        retrieval_service = RetrievalService()
-        return retrieval_service.create_index(chunks)
-    
-    index = cached_create_index(chunks)
-
-    # Chat interface
-    st.write(
-        "Document uploaded successfully! You can now ask questions about the document."
+# Sidebar
+with st.sidebar:
+    st.title("📄 Document Upload")
+    uploaded_file = st.file_uploader(
+        "Choose a PDF, DOCX, or TXT file",
+        type=["pdf", "docx", "txt"],
+        help="Upload your document to start asking questions"
     )
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    
+    if uploaded_file:
+        with st.spinner("Processing document..."):
+            file_extension = os.path.splitext(uploaded_file.name)[1].lower()
+            text = process_document(uploaded_file.getvalue(), file_extension)
+            
+            if text:
+                st.session_state.processed_text = preprocess_text(text)
+                st.session_state.chunks = chunk_text(st.session_state.processed_text)
+                st.session_state.retrieval_service.create_index(st.session_state.chunks)
+                st.success("Document processed successfully!")
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# Main Content
+st.title("🤖 Document Q&A Assistant")
 
-    if prompt := st.chat_input("Ask a question about the document..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        if index is not None:
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
-                retrieval_service = RetrievalService()
-                retrieval_service.index = index  # Ensure the index is set
-                relevant_chunks = retrieval_service.retrieve_relevant_chunks(
-                    prompt, top_k=5
+if 'processed_text' in st.session_state and st.session_state.processed_text:
+    query = st.text_input("Ask a question about your document:", 
+                         placeholder="What is the main topic of the document?")
+    
+    if query:
+        with st.spinner("Thinking..."):
+            try:
+                relevant_chunks = st.session_state.retrieval_service.retrieve_relevant_chunks(
+                    query, top_k=3
                 )
-                context = "\n".join(relevant_chunks)
-                generation_service = GenerationService()
-                generated_response = generation_service.generate_text(context, prompt)
+                
+                if relevant_chunks:
+                    generation_service = GenerationService()
+                    response = generation_service.generate_text(
+                        "\n".join(relevant_chunks), query
+                    )
+                    
+                    st.write("### Response:")
+                    st.markdown(response)
+                    
+                    with st.expander("View relevant context"):
+                        for i, chunk in enumerate(relevant_chunks, 1):
+                            st.markdown(f"**Chunk {i}:**\n{chunk}")
+                else:
+                    st.warning("No relevant information found in the document.")
+            
+            except Exception as e:
+                st.error(f"Error generating response: {str(e)}")
+else:
+    st.info("👈 Please upload a document to get started")
 
-                for chunk in generated_response.split():
-                    full_response += chunk + " "
-                    message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
+# Chat interface
+st.title("💬 Document Chat")
 
-            st.session_state.messages.append(
-                {"role": "assistant", "content": full_response}
-            )
+# Display chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message.role):
+        st.write(message.content)
+        if message.contexts:
+            with st.expander("View source context"):
+                for i, context in enumerate(message.contexts, 1):
+                    st.markdown(f"**Context {i}:**\n{context}")
+
+# Chat input
+if prompt := st.chat_input("What would you like to know?"):
+    # Add user message
+    user_message = ChatMessage(
+        content=prompt,
+        timestamp=datetime.now(),
+        role='user'
+    )
+    st.session_state.messages.append(user_message)
+    
+    # Process response
+    with st.spinner("Thinking..."):
+        response = st.session_state.chat_service.process_message(
+            prompt,
+            st.session_state.chunks if 'chunks' in st.session_state else None
+        )
+        st.session_state.messages.append(response)
