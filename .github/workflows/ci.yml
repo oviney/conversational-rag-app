@@ -56,7 +56,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.12.3'
 
       # Step 3: Install flake8
       - name: Install flake8
