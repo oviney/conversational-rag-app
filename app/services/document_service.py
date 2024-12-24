@@ -1,5 +1,10 @@
 # Handles document operations
-from app.document_processing import extract_text_from_pdf, extract_text_from_docx, preprocess_text
+from app.document_processing import (
+    extract_text_from_pdf,
+    extract_text_from_docx,
+    preprocess_text,
+    chunk_text
+)
 
 
 class DocumentService:
