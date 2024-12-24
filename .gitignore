@@ -6,4 +6,6 @@ venv/
 tests/__pycache__/
 .pytest_cache/
 tests/nltk_data/
-tests/__pycache__/venv/
+tests/__pycache__/
+app/services/__pycache__/
+tests/nltk_data/
