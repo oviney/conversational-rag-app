@@ -2,5 +2,7 @@ node_modules/
 *.log
 dist/
 coverage/
-.env
 venv/
+tests/__pycache__/
+.pytest_cache/
+tests/nltk_data/
