@@ -2,6 +2,7 @@
 from sentence_transformers import SentenceTransformer
 import faiss
 
+
 class RetrievalService:
     def __init__(self):
         self.model = SentenceTransformer(Config.EMBEDDING_MODEL)

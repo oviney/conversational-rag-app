@@ -1,6 +1,7 @@
 # Handles document operations
 from app.document_processing import extract_text_from_pdf, extract_text_from_docx, preprocess_text
 
+
 class DocumentService:
     @staticmethod
     def load_document(file_path):

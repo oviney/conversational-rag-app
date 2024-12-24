@@ -1,6 +1,7 @@
 # Centralized configuration
 import os
 
+
 class Config:
     CHUNK_SIZE = 512
     OVERLAP = 50
