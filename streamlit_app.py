@@ -6,12 +6,29 @@ from app.document_processing import (
 )
 from app.services.retrieval_service import RetrievalService
 from app.services.generation_service import GenerationService
-import chardet
-import tempfile
-import torch
 from app.services.chat_service import ChatService
 from app.models.chat_message import ChatMessage
 from datetime import datetime
+import tempfile
+import torch
+import logging
+
+# Configure the root logger
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(message)s',
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
+
+# Set the logging level for all loggers to WARNING
+for logger_name in logging.root.manager.loggerDict:
+    logging.getLogger(logger_name).setLevel(logging.WARNING)
+
+# Example log message to verify logging is working
+logging.debug("Logging is configured correctly.")
 
 def setup_device():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -53,7 +70,7 @@ def process_document(file_content, file_extension):
         return None
 
 # UI Layout
-st.set_page_config(page_title="Document Q&A", layout="wide")
+st.set_page_config(page_title="Document Chat Assistant", layout="wide")
 
 # Sidebar
 with st.sidebar:
@@ -76,53 +93,18 @@ with st.sidebar:
                 st.success("Document processed successfully!")
 
 # Main Content
-st.title("🤖 Document Q&A Assistant")
-
-if 'processed_text' in st.session_state and st.session_state.processed_text:
-    query = st.text_input("Ask a question about your document:", 
-                         placeholder="What is the main topic of the document?")
-    
-    if query:
-        with st.spinner("Thinking..."):
-            try:
-                relevant_chunks = st.session_state.retrieval_service.retrieve_relevant_chunks(
-                    query, top_k=3
-                )
-                
-                if relevant_chunks:
-                    generation_service = GenerationService()
-                    response = generation_service.generate_text(
-                        "\n".join(relevant_chunks), query
-                    )
-                    
-                    st.write("### Response:")
-                    st.markdown(response)
-                    
-                    with st.expander("View relevant context"):
-                        for i, chunk in enumerate(relevant_chunks, 1):
-                            st.markdown(f"**Chunk {i}:**\n{chunk}")
-                else:
-                    st.warning("No relevant information found in the document.")
-            
-            except Exception as e:
-                st.error(f"Error generating response: {str(e)}")
-else:
-    st.info("👈 Please upload a document to get started")
-
-# Chat interface
-st.title("💬 Document Chat")
+st.title("💬 Document Chat Assistant")
 
 # Display chat messages
 for message in st.session_state.messages:
-    with st.chat_message(message.role):
-        st.write(message.content)
-        if message.contexts:
-            with st.expander("View source context"):
-                for i, context in enumerate(message.contexts, 1):
-                    st.markdown(f"**Context {i}:**\n{context}")
+    if message.role == 'user':
+        st.chat_message(message.content, is_user=True)
+    else:
+        st.chat_message(message.content)
 
 # Chat input
-if prompt := st.chat_input("What would you like to know?"):
+if prompt := st.chat_input("Ask a question or chat with your document assistant..."):
+    logging.debug(f"User prompt: {prompt}")
     # Add user message
     user_message = ChatMessage(
         content=prompt,
@@ -137,4 +119,8 @@ if prompt := st.chat_input("What would you like to know?"):
             prompt,
             st.session_state.chunks if 'chunks' in st.session_state else None
         )
+        logging.debug(f"Assistant response: {response.content}")
         st.session_state.messages.append(response)
+
+    # Display response
+    st.chat_message(response.content)
