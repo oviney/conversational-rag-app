@@ -64,6 +64,22 @@ jobs:
           pip install flake8
 
       # Step 4: Run the linter
-      - name: Run linter
         run: |
           flake8 .
+
+  # Add Docker build and test job
+  docker-build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: docker build -t rag-app .
+
+      - name: Run container tests
+        run: |
+          docker run rag-app pytest --maxfail=1 --disable-warnings -q
