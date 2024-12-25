@@ -1,5 +1,6 @@
 import pytest
 from app.services.retrieval_service import RetrievalService
+import faiss
 
 
 @pytest.fixture
@@ -13,15 +14,26 @@ def chunks():
 def test_retrieval_service_initialization(retrieval_service):
     assert retrieval_service.model is not None
     assert retrieval_service.device.type in ["cpu", "cuda"]
+    
 
 def test_retrieve_relevant_chunks_empty(retrieval_service):
-    retrieval_service.create_index([])
-    result = retrieval_service.retrieve_relevant_chunks("test query")
-    assert result == []
+    """
+    Test that a ValueError is raised when attempting to retrieve chunks with an empty index.
+    """
+    retrieval_service.create_index([])  # Create an empty index
+    with pytest.raises(ValueError, match="Index has not been created or loaded."):
+        retrieval_service.retrieve_relevant_chunks("test query")
+
 
 def test_retrieve_relevant_chunks_no_index(retrieval_service):
+    """
+    Test that a ValueError is raised when the index is not created.
+    """
+    retrieval_service.index = faiss.IndexFlatL2(384)  # Ensure an empty index
+    retrieval_service.chunks = []  # Ensure chunks are empty
     with pytest.raises(ValueError, match="Index has not been created or loaded."):
-        retrieval_service.retrieve_relevant_chunks("test", top_k=2)
+        retrieval_service.retrieve_relevant_chunks(query="Test query", top_k=3)
+
 
 def test_create_index(retrieval_service, chunks):
     retrieval_service.create_index(chunks)

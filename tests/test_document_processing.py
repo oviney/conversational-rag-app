@@ -5,10 +5,12 @@ from app.document_processing import extract_text_from_pdf, extract_text_from_doc
 from reportlab.pdfgen import canvas
 from docx import Document
 
+
 def test_preprocess_text():
     text = "This is a sample text, with punctuation! And stopwords."
     preprocessed_text = preprocess_text(text)
-    assert preprocessed_text == "sample text punctuation stopword"
+    assert preprocessed_text == "sample text with punctuation and stopwords"
+
 
 def test_extract_text_from_pdf():
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:

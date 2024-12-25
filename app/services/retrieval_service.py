@@ -38,8 +38,8 @@ class RetrievalService:
         logging.debug("Index created successfully.")
 
     def retrieve_relevant_chunks(self, query: str, top_k: int = 3) -> List[str]:
-        if self.index is None or not self.chunks:
-            return []
+        if self.index.ntotal == 0 or not self.chunks:  # Check if index or chunks are empty
+            raise ValueError("Index has not been created or loaded.")
         query_embedding = self.model.encode([query], convert_to_tensor=True)  # Use CPU
         query_embedding = query_embedding.cpu().numpy()  # Move to CPU and convert to NumPy array
         faiss.normalize_L2(query_embedding)
