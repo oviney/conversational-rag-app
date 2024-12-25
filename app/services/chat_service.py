@@ -16,8 +16,8 @@ class ChatService:
             try:
                 response, contexts = self.rag_service.process_query(prompt, document_chunks)
             except ValueError as e:
-                response = str(e)
-                contexts = []
+                logging.error(f"Error processing query with RAG service: {str(e)}")
+                raise ValueError("Index has not been created or loaded.")
             logging.debug(f"RAG response: {response}")
             return ChatMessage(
                 content=response,
