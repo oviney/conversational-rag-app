@@ -64,6 +64,7 @@ jobs:
           pip install flake8
 
       # Step 4: Run the linter
+      - name: Run the linter
         run: |
           flake8 .
 
