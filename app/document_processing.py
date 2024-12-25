@@ -4,29 +4,45 @@ from PyPDF2 import PdfReader  # Updated import
 from docx import Document
 import re
 import spacy
+from io import BytesIO
+import streamlit as st
 
 logging.basicConfig(level=logging.DEBUG)
 
 # Load Spacy English model
 nlp = spacy.load("en_core_web_sm")
 
-def extract_text_from_pdf(pdf_path: str) -> str:
-    logging.debug(f"Extracting text from PDF: {pdf_path}")
-    text = ""
+def extract_text_from_pdf(pdf_bytes):
+    """
+    Extract text from PDF content with robust error handling.
+    
+    Args:
+        pdf_bytes: PDF content as bytes
+    
+    Returns:
+        str: Extracted text from the PDF
+    
+    Raises:
+        ValueError: If PDF processing fails
+    """
     try:
-        with open(pdf_path, "rb") as file:
-            reader = PdfReader(file)  # Updated to PdfReader
-            for i, page in enumerate(reader.pages):
+        reader = PdfReader(BytesIO(pdf_bytes))
+        text = []
+        
+        for page in reader.pages:
+            try:
                 page_text = page.extract_text()
-                if page_text:  # Check if text was extracted
-                    text += page_text
-                else:
-                    logging.warning(f"No text found on page {i + 1}")
-        logging.debug(f"Extracted text length: {len(text)}")
-        return text
+                if page_text:
+                    text.append(page_text)
+            except Exception as page_error:
+                logging.warning(f"Could not extract text from page: {str(page_error)}")
+                continue
+        
+        return "\n\n".join(text)
+        
     except Exception as e:
-        logging.error(f"Error extracting text from PDF: {e}")
-        raise
+        logging.error(f"PDF extraction error: {str(e)}")
+        raise ValueError(f"Failed to extract text from PDF: {str(e)}")
 
 
 def extract_text_from_docx(docx_path: str) -> str:
@@ -39,7 +55,6 @@ def extract_text_from_docx(docx_path: str) -> str:
     except Exception as e:
         logging.error(f"Error extracting text from DOCX: {e}")
         raise
-
 
 
 def preprocess_text(text: str, stop_words: set = None) -> str:
