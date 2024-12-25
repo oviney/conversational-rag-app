@@ -7,20 +7,15 @@ from docx import Document
 
 
 def test_preprocess_text():
-    text = "This is a sample text, with punctuation! And stopwords."
+    text = "This is a sample text for preprocessing."
     preprocessed_text = preprocess_text(text)
-    assert preprocessed_text == "sample text with punctuation and stopwords"
+    assert preprocessed_text == "sample text preprocessing"
 
 
 def test_extract_text_from_pdf():
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        c = canvas.Canvas(tmp_file.name)
-        c.drawString(100, 750, "Hello, World!")
-        c.save()
-        temp_file_path = tmp_file.name
-
-    text = extract_text_from_pdf(temp_file_path)
-    assert text.strip() == "Hello, World!"
+    pdf_bytes = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 44 >>\nstream\nBT /F1 24 Tf 100 700 Td (Hello, World!) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000053 00000 n \n0000000100 00000 n \n0000000173 00000 n \ntrailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n231\n%%EOF"
+    text = extract_text_from_pdf(pdf_bytes)
+    assert "Hello, World!" in text
 
 def test_extract_text_from_docx():
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_file:

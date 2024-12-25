@@ -1,6 +1,5 @@
 import pytest
 from app.services.chat_service import ChatService
-from datetime import datetime
 from unittest.mock import patch
 
 @patch('app.services.generation_service.GenerationService.generate_text', return_value="The weather is sunny.")

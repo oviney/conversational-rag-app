@@ -1,14 +1,11 @@
-from sentence_transformers import SentenceTransformer
 import logging
-from typing import List
 from app.services.generation_service import GenerationService
-
+from app.services.retrieval_service import RetrievalService
 
 class RAGService:
-    def __init__(self):
-        from app.services.retrieval_service import RetrievalService  # Local import to avoid circular dependency
-        self.retrieval_service = RetrievalService()
-        self.generation_service = GenerationService()
+    def __init__(self, retrieval_service: RetrievalService, generation_service: GenerationService):
+        self.retrieval_service = retrieval_service
+        self.generation_service = generation_service
         
     def process_query(self, query, chunks, top_k=3):
         logging.debug(f"Processing query: {query}")

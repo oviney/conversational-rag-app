@@ -1,34 +1,36 @@
 # Main Streamlit application
 import streamlit as st
-import os
 from app.document_processing import (
-    extract_text_from_pdf, extract_text_from_docx, preprocess_text, chunk_text
+    extract_text_from_pdf, preprocess_text, chunk_text
 )
-from app.services.retrieval_service import RetrievalService
-from app.services.generation_service import GenerationService
 from app.services.chat_service import ChatService
-from app.models.chat_message import ChatMessage
-from datetime import datetime
-import tempfile
 import torch
 import logging
 
 # Configure the root logger
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s %(message)s',
+    level=logging.INFO,  # Adjust to INFO or WARNING to reduce unwanted logs
+    format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler()
+        logging.FileHandler("./logs/app.log"),  # Log to a file
+        logging.StreamHandler()  # Log to console
     ]
 )
 
-# Set the logging level for all loggers to WARNING
-for logger_name in logging.root.manager.loggerDict:
-    logging.getLogger(logger_name).setLevel(logging.WARNING)
+# Suppress unwanted loggers
+unwanted_loggers = [
+    "watchdog.observers",
+    "torch",
+    "transformers",
+    "faiss.loader",
+    "sentence_transformers"
+]
 
-# Example log message to verify logging is working
-logging.debug("Logging is configured correctly.")
+for logger_name in unwanted_loggers:
+    logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+# Debug logs for verification
+logging.debug("Logging configuration updated to suppress unwanted entries.")
 
 def setup_device():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -38,14 +40,21 @@ def setup_device():
 device = setup_device()
 
 # Initialize session state
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "chat_service" not in st.session_state:
-    st.session_state.chat_service = ChatService()
-if "document_chunks" not in st.session_state:
-    st.session_state.document_chunks = []
-if "index_created" not in st.session_state:
-    st.session_state.index_created = False
+def initialize_session_state():
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "chat_service" not in st.session_state:
+        st.session_state.chat_service = ChatService()
+    if "document_chunks" not in st.session_state:
+        st.session_state.document_chunks = []
+    if "index_created" not in st.session_state:
+        st.session_state.index_created = False
+    if "processed_text" not in st.session_state:
+        st.session_state.processed_text = ""
+    if "document_processed" not in st.session_state:
+        st.session_state.document_processed = False
+
+initialize_session_state()
 
 def process_document(uploaded_file):
     try:
@@ -61,6 +70,7 @@ def process_document(uploaded_file):
                 if not text.strip():
                     st.warning("No text could be extracted from the PDF. The file might be scanned or protected.")
                     return False
+                logging.debug(f"Extracted PDF Text Snippet: {text[:500]}")
                 
             except Exception as pdf_error:
                 st.error("Failed to process PDF file. Please ensure the file is not corrupted or password protected.")
@@ -73,6 +83,7 @@ def process_document(uploaded_file):
                 text = uploaded_file.getvalue().decode('utf-8', errors='ignore')
                 if not text.strip():
                     raise ValueError("Empty text file")
+                logging.debug(f"Extracted Text File Snippet: {text[:500]}")
             except UnicodeDecodeError as decode_error:
                 st.error("Could not decode the file. Please ensure it's a valid text file.")
                 logging.error(f"Text decode error: {str(decode_error)}")
@@ -81,6 +92,9 @@ def process_document(uploaded_file):
         # Process the extracted text
         st.session_state.processed_text = preprocess_text(text)
         st.session_state.document_chunks = chunk_text(st.session_state.processed_text)
+        logging.debug(f"Number of Chunks Created: {len(st.session_state.document_chunks)}")
+        if st.session_state.document_chunks:
+            logging.debug(f"Sample Chunk: {st.session_state.document_chunks[0][:500]}")
         
         if not st.session_state.document_chunks:
             st.warning("No valid text chunks were created from the document.")
@@ -91,6 +105,7 @@ def process_document(uploaded_file):
             st.session_state.document_chunks
         )
         st.session_state.index_created = True
+        st.session_state.document_processed = True  # Mark document as processed
         
         # Show success message
         st.success("Document processed successfully!")
@@ -111,10 +126,10 @@ def process_document(uploaded_file):
 st.set_page_config(page_title="Document Chat Assistant", layout="wide")
 
 # Debug info (temporary)
-st.sidebar.write("Debug Info:")
-st.sidebar.write(f"Index created: {st.session_state.index_created}")
-st.sidebar.write(f"Chunks: {len(st.session_state.document_chunks) if st.session_state.document_chunks else 0}")
-st.sidebar.write(f"Messages: {len(st.session_state.messages)}")
+st.sidebar.write("🔍 **Debug Info:**")
+st.sidebar.write(f"📄 Index created: {st.session_state.index_created}")
+st.sidebar.write(f"📚 Chunks: {len(st.session_state.document_chunks) if st.session_state.document_chunks else 0}")
+st.sidebar.write(f"💬 Messages: {len(st.session_state.messages)}")
 
 # Sidebar
 with st.sidebar:
@@ -125,7 +140,7 @@ with st.sidebar:
         help="Upload your document to start asking questions"
     )
     
-    if uploaded_file:
+    if uploaded_file and not st.session_state.document_processed:
         with st.spinner("Processing document..."):
             if process_document(uploaded_file):
                 st.success("Document processed successfully!")
@@ -154,14 +169,19 @@ if prompt := st.chat_input("Ask about the document..."):
                 response = st.session_state.chat_service.process_message(
                     prompt, st.session_state.document_chunks
                 )
+                if not response.content.strip():
+                    response.content = "I'm sorry, I couldn't find an answer to that question based on the provided document."
+                    logging.warning("Empty response generated.")
                 st.markdown(response.content)
                 # Add to message history
                 st.session_state.messages.append({
-                    "role": "assistant",
+                    "role": "assistant", 
                     "content": response.content
                 })
+                logging.debug(f"User Prompt: {prompt}")
+                logging.debug(f"Assistant Response: {response.content}")
             except Exception as e:
-                st.error(f"Error: {str(e)}")
+                st.error("An error occurred while generating the response. Please try again.")
                 logging.error(f"Chat error: {str(e)}")
 
 # Show warning if no document is loaded

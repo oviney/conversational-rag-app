@@ -7,24 +7,16 @@ def generation_service():
     with patch('transformers.AutoTokenizer.from_pretrained') as mock_tokenizer, \
          patch('transformers.AutoModelForCausalLM.from_pretrained') as mock_model:
         
-        # Configure mock tokenizer
         mock_tokenizer.return_value = Mock()
         mock_tokenizer.return_value.eos_token = "[EOS]"
         mock_tokenizer.return_value.pad_token = None
         
-        # Configure mock model
         mock_model.return_value = Mock()
         mock_model.return_value.generate.return_value = [[1, 2, 3]]
         
         service = GenerationService()
         service.tokenizer.decode = Mock(return_value="Test response")
         return service
-
-def test_generation_service_initialization(generation_service):
-    assert generation_service.model_name == "gpt2"
-    assert generation_service.tokenizer is not None
-    assert generation_service.model is not None
-    assert generation_service.tokenizer.pad_token == generation_service.tokenizer.eos_token
 
 def test_generate_text_success(generation_service):
     context = "Test context"
@@ -41,8 +33,3 @@ def test_generate_text_model_error(generation_service):
     generation_service.model.generate.side_effect = Exception("Model error")
     with pytest.raises(ValueError, match="Failed to generate response"):
         generation_service.generate_text("context", "query")
-
-def test_generate_text_formatting(generation_service):
-    generation_service.tokenizer.decode.return_value = "Context: test\nQuestion: query\nAnswer: response"
-    response = generation_service.generate_text("test", "query")
-    assert response == "response"

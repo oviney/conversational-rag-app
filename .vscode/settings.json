@@ -6,11 +6,4 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    // "type": "setting",
-    // "settings": {
-    //     "logging": {
-    //         "trace": true,
-    //         "traceResponse": true,
-    //         "engineLogging": true
-    //     }
 }

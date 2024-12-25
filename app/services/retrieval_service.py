@@ -20,29 +20,36 @@ class RetrievalService:
         index (faiss.IndexFlatL2): The FAISS index used for similarity search.
     """
     def __init__(self):
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')  # Use CPU
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')  # High-quality embedding model
+        self.index = None
         self.chunks = []
-        self.index = faiss.IndexFlatL2(384)  # Assuming the embedding size is 384
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def create_index(self, chunks: List[str]):
         logging.debug("Creating index for document chunks.")
-        self.chunks = chunks
-        if not chunks:
-            self.chunks = []  # Ensure chunks is set to an empty list
-            self.index = faiss.IndexFlatL2(384)  # Reinitialize to an empty index
-            return
-        embeddings = self.model.encode(chunks, convert_to_tensor=True)  # Use CPU
-        embeddings = embeddings.cpu().detach().numpy()  # Move to CPU and convert to NumPy array
-        self.index.add(embeddings)
-        logging.debug("Index created successfully.")
+        try:
+            self.chunks = chunks
+            if not chunks:
+                self.chunks = []  # Ensure chunks is set to an empty list
+                self.index = faiss.IndexFlatL2(384)  # Reinitialize to an empty index
+                return
+            embeddings = self.model.encode(chunks, convert_to_tensor=True)  # Use CPU
+            embeddings = embeddings.cpu().detach().numpy()  # Move to CPU and convert to NumPy array
+            self.index = faiss.IndexFlatL2(embeddings.shape[1])
+            faiss.normalize_L2(embeddings)
+            self.index.add(embeddings)
+            logging.debug("Index created successfully with embeddings.")
+        except Exception as e:
+            logging.error(f"Index creation error: {str(e)}")
+            raise
 
-    def retrieve_relevant_chunks(self, query: str, top_k: int = 3) -> List[str]:
-        if self.index.ntotal == 0 or not self.chunks:  # Check if index or chunks are empty
+    def retrieve_relevant_chunks(self, query: str, top_k: int = 5) -> List[str]:
+        if self.index is None or not self.chunks:
             raise ValueError("Index has not been created or loaded.")
-        query_embedding = self.model.encode([query], convert_to_tensor=True)  # Use CPU
-        query_embedding = query_embedding.cpu().numpy()  # Move to CPU and convert to NumPy array
+        query_embedding = self.model.encode([query], convert_to_tensor=True)
+        query_embedding = query_embedding.cpu().numpy()
         faiss.normalize_L2(query_embedding)
         distances, indices = self.index.search(query_embedding, top_k)
         relevant_chunks = [self.chunks[i] for i in indices[0] if i < len(self.chunks)]
+        logging.debug(f"Retrieved Chunks for Query '{query}': {relevant_chunks}")
         return relevant_chunks

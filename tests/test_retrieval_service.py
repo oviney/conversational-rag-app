@@ -29,7 +29,7 @@ def test_retrieve_relevant_chunks_no_index(retrieval_service):
     """
     Test that a ValueError is raised when the index is not created.
     """
-    retrieval_service.index = faiss.IndexFlatL2(384)  # Ensure an empty index
+    retrieval_service.index = None  # Ensure index is None
     retrieval_service.chunks = []  # Ensure chunks are empty
     with pytest.raises(ValueError, match="Index has not been created or loaded."):
         retrieval_service.retrieve_relevant_chunks(query="Test query", top_k=3)
@@ -40,7 +40,8 @@ def test_create_index(retrieval_service, chunks):
     assert retrieval_service.index is not None
     assert len(retrieval_service.chunks) == len(chunks)
 
-def test_retrieve_relevant_chunks(retrieval_service, chunks):
+def test_retrieve_relevant_chunks(retrieval_service):
+    chunks = ["This is a test chunk.", "Another test chunk."]
     retrieval_service.create_index(chunks)
     query = "test chunk"
     relevant_chunks = retrieval_service.retrieve_relevant_chunks(query, top_k=2)

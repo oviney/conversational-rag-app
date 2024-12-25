@@ -7,7 +7,6 @@ import spacy
 from io import BytesIO
 import streamlit as st
 
-logging.basicConfig(level=logging.DEBUG)
 
 # Load Spacy English model
 nlp = spacy.load("en_core_web_sm")
