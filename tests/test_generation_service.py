@@ -24,6 +24,7 @@ def generation_service(mock_model_and_tokenizer):
     return GenerationService(model, tokenizer)
 
 
+@pytest.mark.unit
 def test_generate_text_success(generation_service):
     context = "This is a context."
     prompt = "This is a prompt."
@@ -31,11 +32,13 @@ def test_generate_text_success(generation_service):
     assert response == "Generated response"
 
 
+@pytest.mark.unit
 def test_generate_text_empty_context_and_prompt(generation_service):
     with pytest.raises(ValueError, match="Both context and prompt are empty."):
         generation_service.generate_text("", "")
 
 
+@pytest.mark.unit
 def test_generate_text_model_generate_failure(generation_service, mock_model_and_tokenizer):
     model, tokenizer = mock_model_and_tokenizer
     model.generate.side_effect = Exception("Model error")
@@ -43,6 +46,7 @@ def test_generate_text_model_generate_failure(generation_service, mock_model_and
         generation_service.generate_text("context", "prompt")
 
 
+@pytest.mark.unit
 def test_generate_text_empty_response(generation_service, mock_model_and_tokenizer):
     model, tokenizer = mock_model_and_tokenizer
     tokenizer.decode.return_value = ""

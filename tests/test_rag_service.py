@@ -2,6 +2,7 @@ import pytest
 from app.services.rag_service import RAGService
 from unittest.mock import patch, MagicMock
 
+@pytest.mark.unit
 @patch('app.services.generation_service.GenerationService.generate_text', return_value="This is a test response.")
 def test_rag_service_query(mock_generate_text):
     mock_retrieval_service = MagicMock()

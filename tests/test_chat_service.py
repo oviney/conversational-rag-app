@@ -4,6 +4,7 @@ from app.services.chat_service import ChatService
 from app.models.chat_message import ChatMessage
 from datetime import datetime
 
+@pytest.mark.unit
 def test_process_message_without_rag():
     mock_generation_service = MagicMock()
     mock_generation_service.generate_text.return_value = "The weather is sunny."
@@ -17,6 +18,7 @@ def test_process_message_without_rag():
     assert "weather" in response.content.lower()
 
 
+@pytest.mark.unit
 def test_process_message_with_rag():
     mock_generation_service = MagicMock()
     # The final generated text from GenerationService:

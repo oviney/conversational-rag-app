@@ -2,6 +2,7 @@ import pytest
 import streamlit as st
 from datetime import datetime
 
+@pytest.mark.unit
 def test_session_state_initialization():
     if 'processed_text' not in st.session_state:
         st.session_state.processed_text = None
@@ -14,6 +15,7 @@ def test_session_state_initialization():
     assert st.session_state.chunks is None
     assert st.session_state.messages == []
 
+@pytest.mark.unit
 def test_message_history():
     st.session_state.messages = []
     st.session_state.messages.append({

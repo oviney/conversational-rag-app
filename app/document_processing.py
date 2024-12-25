@@ -30,6 +30,8 @@ def extract_text_from_pdf(pdf_bytes):
         # Remove unwanted newline characters
         cleaned_text = text.replace('\n', '')
         return cleaned_text
+        cleaned_text = text.replace('\n', '')
+        return cleaned_text
     except Exception as e:
         logging.error(f"PDF extraction error: {str(e)}")
         raise ValueError(f"Failed to extract text from PDF: {str(e)}")

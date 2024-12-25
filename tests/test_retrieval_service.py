@@ -11,11 +11,13 @@ def retrieval_service():
 def chunks():
     return ["This is a test chunk.", "Another test chunk.", "Yet another chunk for testing."]
 
+@pytest.mark.unit
 def test_retrieval_service_initialization(retrieval_service):
     assert retrieval_service.model is not None
     assert retrieval_service.device.type in ["cpu", "cuda"]
     
 
+@pytest.mark.unit
 def test_retrieve_relevant_chunks_empty(retrieval_service):
     """
     Test that a ValueError is raised when attempting to retrieve chunks with an empty index.
@@ -25,6 +27,7 @@ def test_retrieve_relevant_chunks_empty(retrieval_service):
         retrieval_service.retrieve_relevant_chunks("test query")
 
 
+@pytest.mark.unit
 def test_retrieve_relevant_chunks_no_index(retrieval_service):
     """
     Test that a ValueError is raised when the index is not created.
@@ -35,11 +38,13 @@ def test_retrieve_relevant_chunks_no_index(retrieval_service):
         retrieval_service.retrieve_relevant_chunks(query="Test query", top_k=3)
 
 
+@pytest.mark.unit
 def test_create_index(retrieval_service, chunks):
     retrieval_service.create_index(chunks)
     assert retrieval_service.index is not None
     assert len(retrieval_service.chunks) == len(chunks)
 
+@pytest.mark.unit
 def test_retrieve_relevant_chunks(retrieval_service):
     chunks = ["This is a test chunk.", "Another test chunk."]
     retrieval_service.create_index(chunks)
