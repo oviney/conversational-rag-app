@@ -1,50 +1,58 @@
 # Main Streamlit application
 import streamlit as st
+import os
 from app.document_processing import (
     extract_text_from_pdf, preprocess_text, chunk_text
 )
+from app.services.retrieval_service import RetrievalService
+from app.services.generation_service import GenerationService, load_model_and_tokenizer
 from app.services.chat_service import ChatService
+from app.services.rag_service import RAGService
+from app.models.chat_message import ChatMessage
+from datetime import datetime
+import tempfile
 import torch
 import logging
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Configure the root logger
 logging.basicConfig(
-    level=logging.INFO,  # Adjust to INFO or WARNING to reduce unwanted logs
-    format='%(asctime)s [%(levelname)s] %(message)s',
+    level=logging.WARNING,  # Set to WARNING to suppress lower level logs
+    format='%(asctime)s %(levelname)s %(message)s',
     handlers=[
-        logging.FileHandler("./logs/app.log"),  # Log to a file
-        logging.StreamHandler()  # Log to console
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
     ]
 )
 
-# Suppress unwanted loggers
-unwanted_loggers = [
-    "watchdog.observers",
-    "torch",
-    "transformers",
-    "faiss.loader",
-    "sentence_transformers"
-]
+# Set the logging level for specific loggers to ERROR to reduce log output
+logging.getLogger('watchdog.observers.inotify_buffer').setLevel(logging.ERROR)
+logging.getLogger('transformers').setLevel(logging.ERROR)
+logging.getLogger('faiss.loader').setLevel(logging.ERROR)
+logging.getLogger('sentence_transformers').setLevel(logging.ERROR)
 
-for logger_name in unwanted_loggers:
-    logging.getLogger(logger_name).setLevel(logging.ERROR)
-
-# Debug logs for verification
-logging.debug("Logging configuration updated to suppress unwanted entries.")
+# Example log message to verify logging is working
+logging.debug("Logging is configured correctly.")
 
 def setup_device():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     return device
 
-# Use this in your GenerationService or other model-related code
-device = setup_device()
+# Load model and tokenizer
+model, tokenizer = load_model_and_tokenizer()
+
+# Initialize services
+retrieval_service = RetrievalService()
+generation_service = GenerationService(model, tokenizer)
+rag_service = RAGService(retrieval_service, generation_service)
+chat_service = ChatService(generation_service, rag_service)
 
 # Initialize session state
 def initialize_session_state():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "chat_service" not in st.session_state:
-        st.session_state.chat_service = ChatService()
+        st.session_state.chat_service = chat_service
     if "document_chunks" not in st.session_state:
         st.session_state.document_chunks = []
     if "index_created" not in st.session_state:

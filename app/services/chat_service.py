@@ -7,15 +7,14 @@ from app.models.chat_message import ChatMessage
 
 
 class ChatService:
-    def __init__(self):
-        retrieval_service = RetrievalService()
-        generation_service = GenerationService()
-        self.rag_service = RAGService(retrieval_service, generation_service)
+    def __init__(self, generation_service, rag_service):
+        self.generation_service = generation_service
+        self.rag_service = rag_service
         
-    def process_message(self, message, chunks=None):
-        if chunks:
+    def process_message(self, prompt, document_chunks):
+        if document_chunks:
             try:
-                response, contexts = self.rag_service.process_query(message, chunks)
+                response, contexts = self.rag_service.process_query(prompt, document_chunks)
             except ValueError as e:
                 response = str(e)
                 contexts = []
@@ -28,7 +27,7 @@ class ChatService:
                 requires_rag=True
             )
         else:
-            response = self.rag_service.generation_service.generate_text("", message)
+            response = self.generation_service.generate_text("", prompt)
             logging.debug(f"Generated response: {response}")
             return ChatMessage(
                 content=response,

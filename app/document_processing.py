@@ -1,11 +1,10 @@
 import logging
 from typing import List
-from PyPDF2 import PdfReader  # Updated import
+from pdfminer.high_level import extract_text
 from docx import Document
 import re
 import spacy
 from io import BytesIO
-import streamlit as st
 
 
 # Load Spacy English model
@@ -25,20 +24,12 @@ def extract_text_from_pdf(pdf_bytes):
         ValueError: If PDF processing fails
     """
     try:
-        reader = PdfReader(BytesIO(pdf_bytes))
-        text = []
-        
-        for page in reader.pages:
-            try:
-                page_text = page.extract_text()
-                if page_text:
-                    text.append(page_text)
-            except Exception as page_error:
-                logging.warning(f"Could not extract text from page: {str(page_error)}")
-                continue
-        
-        return "\n\n".join(text)
-        
+        text = extract_text(BytesIO(pdf_bytes))
+        if not text:
+            raise ValueError("No text could be extracted from the PDF.")
+        # Remove unwanted newline characters
+        cleaned_text = text.replace('\n', '')
+        return cleaned_text
     except Exception as e:
         logging.error(f"PDF extraction error: {str(e)}")
         raise ValueError(f"Failed to extract text from PDF: {str(e)}")
