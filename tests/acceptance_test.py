@@ -1,13 +1,15 @@
 import asyncio
 import json
+import pytest
 from playwright.async_api import async_playwright
-from streamlit_app_page import StreamlitAppPage
+from .streamlit_app_page import StreamlitAppPage  # Updated import statement
 
 def load_config(file_path):
     """Load configuration from a JSON file."""
     with open(file_path) as config_file:
         return json.load(config_file)
 
+@pytest.mark.acceptance
 async def run_test(config):
     """Run the end-to-end test for the Streamlit application."""
     async with async_playwright() as playwright:

@@ -6,22 +6,9 @@ venv/
 tests/__pycache__/
 .pytest_cache/
 tests/nltk_data/
-tests/__pycache__/
 app/services/__pycache__/
-tests/nltk_data/
-app/services/__pycache__/retrieval_service.cpython-312.pyc
-tests/__pycache__/test_retrieval_service.cpython-312-pytest-8.3.4.pyc
-tests/__pycache__/test_streamlit_app.cpython-312-pytest-8.3.4.pyc
 logs/
 docs/screeenshots/
-app/__pycache__/document_processing.cpython-312.pyc
-docs/screenshots/Screenshot from 2024-12-24 19-02-12.png
-app/__pycache__/__init__.cpython-312.pyc
-tests/__pycache__/test_document_processing.cpython-312-pytest-8.3.4.pyc
-tests/__pycache__/test_retrieval_service.cpython-312-pytest-8.3.4.pyc
-tests/__pycache__/test_streamlit_app.cpython-312-pytest-8.3.4.pyc
-app/__pycache__/document_processing.cpython-312.pyc
-app/services/__pycache__/generation_service.cpython-312.pyc
-app/__pycache__/document_processing.cpython-312.pyc
-app/services/__pycache__/generation_service.cpython-312.pyc
-app/services/__pycache__/retrieval_service.cpython-312.pyc
+app/__pycache__/
+docs/screenshots/
+tests/screenshots/
