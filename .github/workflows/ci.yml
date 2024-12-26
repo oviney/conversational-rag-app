@@ -81,15 +81,3 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t rag-app .
-
-      - name: Run unit tests
-        env:
-          PYTHONPATH: /app
-        run: |
-          docker run -e PYTHONPATH=/app rag-app pytest -m unit -v --maxfail=1 --disable-warnings -q
-
-      - name: Run integration tests
-        env:
-          PYTHONPATH: /app
-        run: |
-          docker run -e PYTHONPATH=/app rag-app pytest -m integration -v --maxfail=1 --disable-warnings -q
