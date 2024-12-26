@@ -13,7 +13,9 @@ class GenerationService:
             raise ValueError("Both context and prompt are empty.")
         
         try:
-            combined_input = f"Context:\n{context}\n\nPrompt:\n{prompt}\n\nResponse:"
+            combined_input = f"Context:\n{context}\n\nInstruction:\n{prompt}\n\nResponse:"
+            logging.debug(f"Combined Input: {combined_input}")
+            
             input_ids = self.tokenizer.encode(combined_input, return_tensors="pt").to(self.model.device)
             logging.debug(f"Input IDs: {input_ids}")
             
@@ -53,5 +55,5 @@ class GenerationService:
 def load_model_and_tokenizer(model_name="gpt2"):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name)
-    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    model.to("cpu")  # Explicitly move the model to CPU
     return model, tokenizer

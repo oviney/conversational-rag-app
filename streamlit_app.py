@@ -16,27 +16,28 @@ import logging
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Configure the root logger
-logging.basicConfig(
-    level=logging.WARNING,  # Set to WARNING to suppress lower level logs
-    format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler()
-    ]
-)
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Set the logging level for specific loggers to ERROR to reduce log output
 logging.getLogger('watchdog.observers.inotify_buffer').setLevel(logging.ERROR)
 logging.getLogger('transformers').setLevel(logging.ERROR)
 logging.getLogger('faiss.loader').setLevel(logging.ERROR)
 logging.getLogger('sentence_transformers').setLevel(logging.ERROR)
+logging.getLogger('pdfminer').setLevel(logging.ERROR)  # Control all 'pdfminer' related logs
 
 # Example log message to verify logging is working
 logging.debug("Logging is configured correctly.")
 
 def setup_device():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     return device
+
+def load_model_and_tokenizer(model_name="gpt2"):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    model.to("cpu")  # Explicitly move the model to CPU
+    return model, tokenizer
 
 # Load model and tokenizer
 model, tokenizer = load_model_and_tokenizer()
@@ -108,12 +109,15 @@ def process_document(uploaded_file):
             st.warning("No valid text chunks were created from the document.")
             return False
         
+        # Join chunks into a single string before creating the index
+        document_text = ' '.join(st.session_state.document_chunks)
+        
         # Create index with chunks
-        st.session_state.chat_service.rag_service.retrieval_service.create_index(
-            st.session_state.document_chunks
-        )
+        st.session_state.chat_service.rag_service.retrieval_service.create_index(document_text)
         st.session_state.index_created = True
-        st.session_state.document_processed = True  # Mark document as processed
+        
+        # Mark document as processed
+        st.session_state.document_processed = True
         
         # Show success message
         st.success("Document processed successfully!")

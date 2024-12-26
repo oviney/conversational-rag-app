@@ -1,55 +1,41 @@
+import unittest
 import pytest
 from app.services.retrieval_service import RetrievalService
-import faiss
 
+class TestRetrievalService(unittest.TestCase):
+    def setUp(self):
+        self.retrieval_service = RetrievalService()
+        self.document = (
+            "In the software world, we often talk about quality. "
+            "Quality can mean different things to different people. "
+            "For some, it means fewer bugs. For others, it means a great user experience. "
+            "In this document, we will explore the various aspects of quality in software development."
+        )
+        self.query = "What is quality?"
 
-@pytest.fixture
-def retrieval_service():
-    return RetrievalService()
+    @pytest.mark.unit
+    def test_chunk_document(self):
+        chunks = self.retrieval_service.chunk_document(self.document, chunk_size=10)
+        self.assertEqual(len(chunks), 5)
+        self.assertIn("In the software world, we often talk about quality.", chunks[0]["text"])
 
-@pytest.fixture
-def chunks():
-    return ["This is a test chunk.", "Another test chunk.", "Yet another chunk for testing."]
+    @pytest.mark.unit
+    def test_create_index(self):
+        self.retrieval_service.create_index(self.document)
+        self.assertIsNotNone(self.retrieval_service.index)
 
-@pytest.mark.unit
-def test_retrieval_service_initialization(retrieval_service):
-    assert retrieval_service.model is not None
-    assert retrieval_service.device.type in ["cpu", "cuda"]
-    
+    @pytest.mark.unit
+    def test_retrieve_relevant_chunks(self):
+        self.retrieval_service.create_index(self.document)
+        relevant_chunks = self.retrieval_service.retrieve_relevant_chunks(self.query, top_k=2)
+        self.assertTrue(any("quality" in chunk for chunk in relevant_chunks))
+        self.assertTrue(any("In the software world, we often talk about quality." in chunk for chunk in relevant_chunks))
 
-@pytest.mark.unit
-def test_retrieve_relevant_chunks_empty(retrieval_service):
-    """
-    Test that a ValueError is raised when attempting to retrieve chunks with an empty index.
-    """
-    retrieval_service.create_index([])  # Create an empty index
-    with pytest.raises(ValueError, match="Index has not been created or loaded."):
-        retrieval_service.retrieve_relevant_chunks("test query")
+    @pytest.mark.unit
+    def test_is_relevant_chunk(self):
+        chunk = "In the software world, we often talk about quality."
+        self.assertTrue(self.retrieval_service.is_relevant_chunk(chunk, self.query))
+        self.assertFalse(self.retrieval_service.is_relevant_chunk("This is irrelevant.", self.query))
 
-
-@pytest.mark.unit
-def test_retrieve_relevant_chunks_no_index(retrieval_service):
-    """
-    Test that a ValueError is raised when the index is not created.
-    """
-    retrieval_service.index = None  # Ensure index is None
-    retrieval_service.chunks = []  # Ensure chunks are empty
-    with pytest.raises(ValueError, match="Index has not been created or loaded."):
-        retrieval_service.retrieve_relevant_chunks(query="Test query", top_k=3)
-
-
-@pytest.mark.unit
-def test_create_index(retrieval_service, chunks):
-    retrieval_service.create_index(chunks)
-    assert retrieval_service.index is not None
-    assert len(retrieval_service.chunks) == len(chunks)
-
-@pytest.mark.unit
-def test_retrieve_relevant_chunks(retrieval_service):
-    chunks = ["This is a test chunk.", "Another test chunk."]
-    retrieval_service.create_index(chunks)
-    query = "test chunk"
-    relevant_chunks = retrieval_service.retrieve_relevant_chunks(query, top_k=2)
-    assert len(relevant_chunks) == 2
-    assert "This is a test chunk." in relevant_chunks
-    assert "Another test chunk." in relevant_chunks
+if __name__ == "__main__":
+    unittest.main()

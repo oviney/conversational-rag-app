@@ -16,7 +16,7 @@ import torch
 from io import BytesIO
 
 def setup_device():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     return device
 
 device = setup_device()
@@ -85,7 +85,7 @@ def test_chat_interface(mock_generate_text, mock_retrieve_relevant_chunks):
     mock_generate_text.return_value = "Generated response based on the document content."
 
     retrieval_service = RetrievalService()
-    relevant_chunks = retrieval_service.retrieve_relevant_chunks(prompt, chunks)
+    relevant_chunks = retrieval_service.retrieve_relevant_chunks(prompt, top_k=2)
     context = "\n".join(relevant_chunks)
 
     # Mock model and tokenizer
@@ -106,7 +106,7 @@ def test_chat_interface_no_relevant_chunks(mock_generate_text, mock_retrieve_rel
     mock_generate_text.return_value = "No relevant information found."
 
     retrieval_service = RetrievalService()
-    relevant_chunks = retrieval_service.retrieve_relevant_chunks(prompt, [])
+    relevant_chunks = retrieval_service.retrieve_relevant_chunks(prompt, top_k=2)
     context = "\n".join(relevant_chunks)
 
     # Mock model and tokenizer
@@ -120,25 +120,15 @@ def test_chat_interface_no_relevant_chunks(mock_generate_text, mock_retrieve_rel
 
 @pytest.mark.integration
 def test_process_message_with_rag_no_index():
-    # Mock generation_service and rag_service
-    mock_generation_service = MagicMock()
-    mock_rag_service = MagicMock()
-    
-    chat_service = ChatService(mock_generation_service, mock_rag_service)
-    message = "What is the main topic of the document?"
-    
-    # Ensure the retrieval service raises the expected ValueError
-    mock_rag_service.retrieval_service.retrieve_relevant_chunks.side_effect = ValueError("Index has not been created or loaded.")
-    
+    retrieval_service = RetrievalService()
     with pytest.raises(ValueError, match="Index has not been created or loaded."):
-        chat_service.process_message(message, ["This is a test chunk."])
+        retrieval_service.retrieve_relevant_chunks("test", top_k=2)
 
 @pytest.mark.unit
 def test_retrieve_relevant_chunks_empty():
     retrieval_service = RetrievalService()
-    retrieval_service.create_index([])
-    with pytest.raises(ValueError, match="Index has not been created or loaded."):
-        retrieval_service.retrieve_relevant_chunks("test query")
+    with pytest.raises(ValueError, match="No chunks were created from the document."):
+        retrieval_service.create_index("")
 
 @pytest.mark.unit
 def test_retrieve_relevant_chunks_no_index():
@@ -164,15 +154,13 @@ def test_chunk_text_with_different_chunk_size():
 @pytest.mark.unit
 def test_retrieval_service_create_index():
     retrieval_service = RetrievalService()
-    chunks = ["chunk1", "chunk2", "chunk3"]
-    retrieval_service.create_index(chunks)
+    retrieval_service.create_index("This is a sample document.")
     assert retrieval_service.index is not None
 
 @pytest.mark.unit
 def test_retrieval_service_retrieve_relevant_chunks():
     retrieval_service = RetrievalService()
-    chunks = ["chunk1", "chunk2", "chunk3"]
-    retrieval_service.create_index(chunks)
-    relevant_chunks = retrieval_service.retrieve_relevant_chunks("chunk1")
-    assert isinstance(relevant_chunks, list)
-    assert len(relevant_chunks) > 0
+    retrieval_service.create_index("This is a sample document.")
+    chunks = retrieval_service.retrieve_relevant_chunks("sample", top_k=1)
+    assert len(chunks) > 0
+    assert "sample" in chunks[0]
