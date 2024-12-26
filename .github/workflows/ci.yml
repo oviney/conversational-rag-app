@@ -81,3 +81,35 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t rag-app .
+
+      - name: Run Docker container
+        run: docker run -d -p 8501:8501 --name rag-app-container rag-app
+
+      - name: Wait for the app to be ready
+        run: |
+          until curl -s http://localhost:8501/ > /dev/null; do
+            echo "Waiting for the app to be ready..."
+            sleep 5
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.3'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install playwright
+          python -m playwright install
+
+      - name: Run acceptance tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python tests/acceptance_test.py
+
+      - name: Stop and remove Docker container
+        run: |
+          docker stop rag-app-container
+          docker rm rag-app-container
