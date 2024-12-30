@@ -12,3 +12,5 @@ docs/screeenshots/
 app/__pycache__/
 docs/screenshots/
 tests/screenshots/
+app/services/__pycache__/
+__pycache__/

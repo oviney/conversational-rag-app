@@ -6,6 +6,7 @@ import logging
 from typing import List, Dict
 import numpy as np
 import spacy
+import streamlit as st
 
 # Suppress specific deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="reportlab")
